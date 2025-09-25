@@ -1,93 +1,116 @@
-# Participating Companies Wall
+# Participating Companies — Infinite Scroller
 
-행사장에서 KR/EN 혼합 기업명을 큰 글자와 무한 스크롤로 보여주는 단일 HTML 페이지입니다. 빔 프로젝터 친화적 테마, 글자 간격 최적화, 행 수/속도/스타일 토글, 그리고 `companies.txt` 불러오기·편집 오버레이를 지원합니다.
+행사 참가 기업 — 무한 스크롤러
 
-A single-file HTML page to showcase participating company names in a projector-friendly infinite scroller. It supports mixed KR/EN typography, adjustable rows/speed/style, and an editor overlay that can load from `companies.txt`.
-
----
-
-## 빠른 시작 (Korean)
-- 로컬에서 열기: `index.html`을 더블클릭해 바로 실행합니다.
-  - 참고: `file://` 환경에서는 브라우저 보안상 `companies.txt`를 직접 가져오지 못할 수 있습니다. 화면 우상단 단축키 `E`(Edit) → `Load companies.txt` 클릭 시 자동으로 파일 선택 대화상자가 열려 로컬 파일을 불러올 수 있습니다.
-- 로컬 서버에서 실행: 간단한 서버를 띄우면 자동 로딩이 안정적입니다.
-  - Python: `python3 -m http.server 8000` 후 `http://localhost:8000` 접속
-  - VS Code Live Server 등 정적 서버 도구도 사용 가능합니다.
-
-### 사용법
-- 기업명 목록 편집: 키보드 `E` → 에디터에 줄바꿈으로 붙여넣기 → Apply & Save
-  - 또는 `Load companies.txt`로 불러오기
-- `companies.txt` 포맷
-  - 줄바꿈 텍스트: 각 줄이 하나의 기업명
-  - 또는 JSON 배열: `["Naver", "미래에셋자산운용", ... ]`
-- 단축키
-  - `F` 전체화면, `SPACE` 일시정지/재생
-  - `+`/`-` 속도 조절, `[`/`]` 행 수 조절
-  - `B` 칩 스타일 토글, `G` 글로우 토글, `E` 편집기 열기
-
-### 기본 커스터마이즈 (index.html → CONFIG)
-- `rows`: 행 수(숫자) 또는 `"auto"`
-- `baseSpeedPxPerSec`: 기본 이동 속도(px/s)
-- `speedJitterPct`: 행별 속도 랜덤 편차(%)
-- `gapPx`/`rowGapPx`: 칩 간격/행 간격(px)
-- `useChips`/`showGlow`: 칩 스타일 및 글로우 켜기/끄기
-- `title`/`subtitle`: 헤더 텍스트
-- `fontScaleByVH`/`fontVHFactor`: 화면 높이에 따른 글자 크기 스케일
-- `latinLetterSpacing`/`cjkLetterSpacing`: 라틴/한글 자간 조정
-- `persistKey`: 브라우저 localStorage 키(환경별 분리 용도)
-
-### 배포 (GitHub Pages)
-1. GitHub에 새 공개 저장소를 생성합니다. 예: `participating-companies-wall`.
-2. 이 폴더를 푸시합니다(`index.html`, `companies.txt`, `README.md`).
-3. GitHub 저장소 → Settings → Pages → Build and deployment에서
-   - Source: "Deploy from a branch"
-   - Branch: `main` (또는 기본 브랜치), 폴더: `/ (root)` 저장
-4. 몇 분 후 `https://<username>.github.io/<repo-name>/`에서 페이지가 열립니다.
+A lightweight, projector-ready HTML page that continuously scrolls the names of participating companies at an event.  
+행사에서 참여 기업들의 이름을 끊김 없이 스크롤로 보여주는, 빔프로젝터 친화적인 HTML 페이지입니다.
 
 ---
 
-## Quick Start (English)
-- Open locally: double-click `index.html`.
-  - Note: when opened via `file://`, browsers may block fetching `companies.txt`. Use the editor overlay: press `E` → click `Load companies.txt` to pick a local file.
-- Serve locally for best results:
-  - Python: `python3 -m http.server 8000` then visit `http://localhost:8000`
-  - Any static server (e.g., VS Code Live Server) works.
+## ✨ Features / 기능
 
-### Usage
-- Edit company list: press `E`, paste one name per line, then Apply & Save.
-  - Or click `Load companies.txt`.
-- `companies.txt` format
-  - Newline-separated text: one company per line, or
-  - JSON array: `["Naver", "미래에셋자산운용", ... ]`
-- Keyboard shortcuts
-  - `F` fullscreen, `SPACE` pause/resume
-  - `+`/`-` speed, `[`/`]` rows
-  - `B` chip style, `G` glow, `E` editor
+-   **Simple data input**: Add company names line by line in `companies.txt`.  
+    **간단한 데이터 입력**: `companies.txt` 파일에 기업 이름을 한 줄씩 추가하면 됩니다.
 
-### Basic Customization (index.html → CONFIG)
-- `rows`: number of rows or `"auto"`
-- `baseSpeedPxPerSec`: base lane speed in px/s
-- `speedJitterPct`: per-lane speed variance (%)
-- `gapPx`/`rowGapPx`: chip gap / row gap (px)
-- `useChips`/`showGlow`: chip styling and glow toggle
-- `title`/`subtitle`: header text
-- `fontScaleByVH`/`fontVHFactor`: font scaling by viewport height
-- `latinLetterSpacing`/`cjkLetterSpacing`: letter-spacing for Latin/CJK
-- `persistKey`: localStorage key
+-   **Projector-friendly design**: Dark background, high-contrast text, KR/EN mixed font support.  
+    **프로젝터 친화적 디자인**: 어두운 배경, 높은 대비, 한글/영문 혼합 표시 지원.
 
-### Deploy (GitHub Pages)
-1. Create a public repo, e.g., `participating-companies-wall`.
-2. Push `index.html`, `companies.txt`, and this `README.md`.
-3. In repo Settings → Pages:
-   - Source: Deploy from a branch
-   - Branch: `main`, folder: `/ (root)`
-4. Visit `https://<username>.github.io/<repo-name>/` once it finishes building.
+-   **Infinite marquee effect**: Smooth, continuous scrolling with no blank gaps.  
+    **무한 마퀴 효과**: 빈 공간 없이 부드럽게 이어지는 스크롤.
+
+-   **Keyboard controls** (for live adjustments) / **키보드 단축키**:
+    -   **F** → fullscreen / 전체화면
+    -   **Space** → pause/resume / 일시정지·재생
+    -   **+ / -** → adjust speed / 속도 조절
+    -   **[ / ]** → adjust number of rows / 행 개수 조절
+    -   **B** → toggle chip style / 칩 스타일 전환
+    -   **G** → toggle glow effect / 글로우 효과 전환
+    -   **E** → open in-browser editor / 편집기 열기
 
 ---
 
-## Notes
-- Typography: the page uses a KR/EN friendly system font stack (`Noto Sans KR`, `Apple SD Gothic Neo`, etc.). You can change it in the CSS if your venue prefers a branded font.
-- Persistence: edits are saved to `localStorage` under `persistKey`. Clearing browser storage resets to defaults.
-- Verification: open DevTools and run `verifyCompaniesPresence()` to confirm every name appears in at least one scrolling lane.
+## 🚀 Getting Started / 시작하기
 
-## Contributing
-PRs and improvements are welcome. If you add features (e.g., logos, dark/light themes), please keep the single-file simplicity and projector readability in mind.
+### 1. Clone or Download / 클론 또는 다운로드
+
+```bash
+git clone https://github.com/your-username/infinite-scroller.git
+cd infinite-scroller
+```
+
+### 2. Add Company List / 기업 목록 추가
+
+Create a `companies.txt` file in the same directory.  
+각 기업 이름을 줄바꿈으로 구분해 `companies.txt` 파일에 작성하세요.
+
+Example / 예시:
+
+```
+신한투자증권
+NAVER
+카카오
+LG CNS
+Samsung SDS
+NHN Cloud
+Coupang
+```
+
+### 3. Open in Browser / 브라우저에서 열기
+
+Simply open `index.html` in your browser.  
+브라우저에서 `index.html` 파일을 열면 됩니다.
+
+-   Use **E key → Load companies.txt** to load your list.
+-   **E 키 → Load companies.txt** 버튼으로 기업 리스트를 불러올 수 있습니다.
+-   Or paste names directly into the editor.
+-   또는 편집기에 직접 붙여 넣을 수도 있습니다.
+
+---
+
+## 🖥️ Demo / 데모
+
+![demo screenshot](./screenshot.png)  
+_(Add a screenshot or GIF showing the scrolling effect / 스크롤 효과를 보여주는 스크린샷이나 GIF를 추가하세요.)_
+
+---
+
+## 🛠️ Customization / 커스터마이징
+
+-   **Title & Subtitle** can be changed in `index.html`.  
+    **제목과 부제목**은 `index.html`에서 변경 가능합니다.
+
+-   **Styling** (colors, gaps, chip style) is controlled via CSS variables.  
+    **디자인 요소**(색상, 간격, 칩 스타일)는 CSS 변수로 조정할 수 있습니다.
+
+-   **Animation speed, rows, and effects** can be tuned live with keyboard controls.  
+    **애니메이션 속도, 행 수, 효과**는 키보드 단축키로 실시간 조정 가능합니다.
+
+---
+
+## 📂 Project Structure / 프로젝트 구조
+
+```
+.
+├── index.html       # Main HTML file with inline CSS/JS / 메인 HTML 파일
+├── companies.txt    # Company names (one per line) / 기업 이름 목록
+├── screenshot.png    # Screen shot image / 스크린샷 이미지
+└── README.md        # Project documentation / 문서
+```
+
+---
+
+## 📜 License / 라이선스
+
+This project is licensed under the **MIT License**.  
+본 프로젝트는 **MIT 라이선스**로 배포됩니다.
+
+You are free to **use, copy, modify, merge, publish, distribute, sublicense, and/or sell** copies of the Software.  
+누구나 자유롭게 **사용, 수정, 배포, 상업적 활용**할 수 있습니다.
+
+---
+
+## 🙌 Acknowledgements / 감사의 말
+
+-   Fonts: Noto Sans KR, system UI fonts
+-   Designed for event organizers to quickly display sponsor/partner/company lists
+-   행사 주최 측이 빠르게 **후원사·파트너사·참여 기업 목록**을 보여줄 수 있도록 설계되었습니다.
