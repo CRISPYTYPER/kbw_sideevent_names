@@ -157,6 +157,7 @@
           <button id="closeBtn">Cancel (Esc)</button>
         </div>
         <div>
+          <button id="loadFromTxt">Load companies.txt</button>
           <button id="loadDemo">Load demo list</button>
           <button id="applyBtn" class="primary">Apply & Save</button>
         </div>
@@ -325,6 +326,7 @@
     const applyBtn = document.getElementById('applyBtn');
     const closeBtn = document.getElementById('closeBtn');
     const loadDemo = document.getElementById('loadDemo');
+    const loadFromTxt = document.getElementById('loadFromTxt');
 
     function openEditor(){ textarea.value = COMPANIES.join('\n'); overlay.classList.add('show'); setTimeout(()=>textarea.focus(), 50); }
     function closeEditor(){ overlay.classList.remove('show'); }
@@ -335,6 +337,27 @@
       persist(); closeEditor(); render();
     });
     closeBtn.addEventListener('click', closeEditor);
+    loadFromTxt.addEventListener('click', async () => {
+      try {
+        const res = await fetch('companies.txt', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        let list;
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) list = parsed;
+        } catch {}
+        if (!list) {
+          // fallback: plain newline list
+          list = text.split(/\r?\n/);
+        }
+        list = list.map(x => String(x).trim()).filter(Boolean);
+        if (!list.length) throw new Error('Empty or invalid format');
+        textarea.value = list.join('\n');
+      } catch (err) {
+        alert('Failed to load companies.txt: ' + (err?.message || err));
+      }
+    });
     loadDemo.addEventListener('click', () => {
       textarea.value = [
         '신한투자증권','NAVER','카카오','LG CNS','Samsung SDS','NHN Cloud','Coupang','토스(Toss)','두나무(Upbit)','Bithumb','GSR Markets','위메이드','SK hynix'
