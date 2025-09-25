@@ -160,6 +160,7 @@
           <button id="loadFromTxt">Load companies.txt</button>
           <button id="loadDemo">Load demo list</button>
           <button id="applyBtn" class="primary">Apply & Save</button>
+          <input type="file" id="filePicker" accept=".txt,.json" style="display:none" />
         </div>
       </div>
     </div>
@@ -246,12 +247,12 @@
           chip.className = (CONFIG.useChips ? 'item' : 'item brandless') + ' ' + (CJK_REGEX.test(t) ? 'cjk' : 'latin');
           chip.textContent = t;
           seq.appendChild(chip);
-          if (i !== list.length - 1){
-            const sep = document.createElement('div');
-            sep.className = 'separator';
-            sep.textContent = '•';
-            seq.appendChild(sep);
-          }
+          // Always append a separator, including after the last item,
+          // so adjacent cloned sequences also have a dot between names.
+          const sep = document.createElement('div');
+          sep.className = 'separator';
+          sep.textContent = '•';
+          seq.appendChild(sep);
         });
         return seq;
       }
@@ -327,6 +328,7 @@
     const closeBtn = document.getElementById('closeBtn');
     const loadDemo = document.getElementById('loadDemo');
     const loadFromTxt = document.getElementById('loadFromTxt');
+    const filePicker = document.getElementById('filePicker');
 
     function openEditor(){ textarea.value = COMPANIES.join('\n'); overlay.classList.add('show'); setTimeout(()=>textarea.focus(), 50); }
     function closeEditor(){ overlay.classList.remove('show'); }
@@ -337,25 +339,51 @@
       persist(); closeEditor(); render();
     });
     closeBtn.addEventListener('click', closeEditor);
+    function parseCompaniesText(text){
+      let list = null;
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {}
+      if (!list) list = text.split(/\r?\n/);
+      return list.map(x => String(x).trim()).filter(Boolean);
+    }
+
+    async function pickLocalCompaniesFile(){
+      return new Promise((resolve) => {
+        const handler = async () => {
+          filePicker.removeEventListener('change', handler);
+          const file = filePicker.files && filePicker.files[0];
+          if (!file) return resolve(null);
+          const text = await file.text();
+          resolve(parseCompaniesText(text));
+        };
+        filePicker.value = '';
+        filePicker.addEventListener('change', handler);
+        filePicker.click();
+      });
+    }
+
     loadFromTxt.addEventListener('click', async () => {
+      // If opened via file://, use file picker since fetch will be blocked by the browser.
+      if (location.protocol === 'file:'){
+        const list = await pickLocalCompaniesFile();
+        if (list && list.length) textarea.value = list.join('\n');
+        return;
+      }
       try {
         const res = await fetch('companies.txt', { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
-        let list;
-        try {
-          const parsed = JSON.parse(text);
-          if (Array.isArray(parsed)) list = parsed;
-        } catch {}
-        if (!list) {
-          // fallback: plain newline list
-          list = text.split(/\r?\n/);
-        }
-        list = list.map(x => String(x).trim()).filter(Boolean);
+        const list = parseCompaniesText(text);
         if (!list.length) throw new Error('Empty or invalid format');
         textarea.value = list.join('\n');
       } catch (err) {
-        alert('Failed to load companies.txt: ' + (err?.message || err));
+        // On fetch failure (e.g., CORS, file://), fall back to local file picker.
+        console.warn('Fetch failed, falling back to local file picker:', err);
+        const list = await pickLocalCompaniesFile();
+        if (list && list.length) textarea.value = list.join('\n');
+        else alert('Failed to load companies.txt: ' + (err?.message || err));
       }
     });
     loadDemo.addEventListener('click', () => {
