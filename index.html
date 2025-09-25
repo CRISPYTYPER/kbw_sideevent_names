@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Participating Companies — Infinite Scroller</title>
+  <!-- Projector-ready, KR/EN mixed names friendly -->
+  <style>
+    :root {
+      --bg: #0a0a0a;           /* projector-friendly near-black */
+      --fg: #f5f5f5;           /* off-white */
+      --fg-dim: #cfcfcf;
+      --chip-bg: #111318;      /* chip background */
+      --chip-br: #2a2d35;      /* chip border */
+      --gap: 48px;             /* horizontal gap between items */
+      --row-gap: 24px;         /* vertical gap between rows */
+      --pad-y: 22px;           /* inner vertical padding for chips */
+      --pad-x: 36px;           /* inner horizontal padding for chips */
+      --radius: 9999px;        /* pill */
+      --shadow: 0 0 0 rgba(0,0,0,0);
+      --speed-mult: 1;         /* global speed multiplier (updated via JS) */
+      --font-scale: 1;         /* global font scale (auto-adjusts) */
+      --latin-ls: 0.4px;       /* letter-spacing for Latin */
+      --cjk-ls: 0px;           /* letter-spacing for Hangul/CJK */
+      --line-height: 1.15;     /* unify mixed-script line-height */
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      /* Mixed KR/EN friendly fallback stack */
+      font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      letter-spacing: 0; /* base, we adjust per-script on .item */
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .stage {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      padding: 48px 56px 40px;
+      gap: var(--row-gap);
+      box-sizing: border-box;
+    }
+
+    .header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 6px; user-select: none;
+    }
+    .title { font-weight: 800; font-size: clamp(18px, 2vw, 28px); color: var(--fg); opacity: 0.96; }
+    .subtitle { font-weight: 500; font-size: clamp(12px, 1.2vw, 16px); color: var(--fg-dim); }
+
+    .rows { flex: 1; display: flex; flex-direction: column; gap: var(--row-gap); }
+
+    .row {
+      position: relative;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: max-content;
+      align-items: center;
+      gap: var(--gap);
+      white-space: nowrap;
+      will-change: transform;
+      filter: drop-shadow(var(--shadow));
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+      mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    }
+    .row-wrap { position: relative; width: 100%; overflow: hidden; }
+
+    .item {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      padding: var(--pad-y) var(--pad-x);
+      border-radius: var(--radius);
+      border: 1px solid var(--chip-br);
+      background: var(--chip-bg);
+      font-weight: 700;
+      font-size: calc(28px * var(--font-scale));
+      line-height: var(--line-height);
+      text-transform: none;
+    }
+    .item.brandless { background: transparent; border-color: transparent; font-weight: 600; }
+    .item.latin { letter-spacing: var(--latin-ls); }
+    .item.cjk   { letter-spacing: var(--cjk-ls); }
+
+    .separator { opacity: 0.3; font-weight: 800; letter-spacing: 2px; padding: 0 6px; user-select: none; }
+
+    @keyframes marquee-left  { from { transform: translateX(0); } to { transform: translateX(var(--shift));   } }
+    @keyframes marquee-right { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--shift))); } }
+    .animate-left  { animation: marquee-left  var(--duration) linear infinite; }
+    .animate-right { animation: marquee-right var(--duration) linear infinite; }
+    .paused { animation-play-state: paused !important; }
+
+    .glow { --shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-left, .animate-right { animation-duration: 1ms !important; }
+    }
+
+    .footer {
+      position: absolute; left: 56px; right: 56px; bottom: 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      color: var(--fg-dim); font-size: clamp(10px, 1vw, 14px);
+      opacity: 0.75; user-select: none;
+    }
+    .kbd { border: 1px solid #2e2e2e; padding: 2px 6px; border-radius: 6px; background: #121212; }
+
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; }
+    .overlay.show { display: grid; place-items: center; }
+    .editor { width: min(1100px, 90vw); height: min(70vh, 600px); display: grid; grid-template-rows: auto 1fr auto; gap: 12px; background: #0f1115; border: 1px solid #2a2d35; border-radius: 16px; padding: 16px; box-shadow: 0 12px 60px rgba(0,0,0,0.6); }
+    .editor h2 { margin: 0; font-size: 18px; }
+    textarea { width: 100%; height: 100%; resize: none; background: #0b0d11; color: var(--fg); border: 1px solid #242830; border-radius: 10px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .editor .actions { display: flex; justify-content: space-between; gap: 8px; }
+    .editor button { background: #1a1d25; color: #e5e7eb; border: 1px solid #2a2f3a; border-radius: 8px; padding: 10px 14px; font-weight: 600; cursor: pointer; }
+    .editor button.primary { background: #0ea5e9; border-color: #0ea5e9; color: #0b0d11; }
+  .lane { display: inline-flex; align-items: center; gap: var(--gap); will-change: transform; --distance: 0px; --base-duration: 30s; animation-timing-function: linear; animation-iteration-count: infinite; animation-duration: calc(var(--base-duration) / var(--speed-mult)); }
+    .seq { display: inline-flex; align-items: center; gap: var(--gap); }
+    @keyframes lane-left { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--distance))); } }
+    /* For rightward motion, start at -distance and move to 0 to avoid leading gap */
+    @keyframes lane-right { from { transform: translateX(calc(-1 * var(--distance))); } to { transform: translateX(0); } }
+    .anim-left  { animation-name: lane-left; }
+    .anim-right { animation-name: lane-right; }
+    .paused { animation-play-state: paused !important; }
+
+  </style>
+</head>
+<body>
+  <div class="stage glow" id="stage">
+    <div class="header">
+      <div class="title">Participating Companies</div>
+      <div class="subtitle">Companies joining today's event</div>
+    </div>
+    <div class="rows" id="rows"></div>
+    <div class="footer">
+      <div>
+        <span class="kbd">F</span> fullscreen ·
+        <span class="kbd">SPACE</span> pause ·
+        <span class="kbd">+</span>/<span class="kbd">-</span> speed ·
+        <span class="kbd">[</span>/<span class="kbd">]</span> rows ·
+        <span class="kbd">B</span> chip style ·
+        <span class="kbd">G</span> glow ·
+        <span class="kbd">E</span> edit list
+      </div>
+      <div>KR/EN mixed-script optimized</div>
+    </div>
+  </div>
+
+  <!-- Editor Overlay -->
+  <div class="overlay" id="overlay">
+    <div class="editor">
+      <h2>Paste company names (one per line)</h2>
+      <textarea id="textarea" spellcheck="false"></textarea>
+      <div class="actions">
+        <div>
+          <button id="closeBtn">Cancel (Esc)</button>
+        </div>
+        <div>
+          <button id="loadDemo">Load demo list</button>
+          <button id="applyBtn" class="primary">Apply & Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- CONFIG ----------
+    const CONFIG = {
+      rows: "auto",
+      baseSpeedPxPerSec: 70,
+      speedJitterPct: 8,
+      gapPx: 48,
+      rowGapPx: 24,
+      useChips: true,
+      showGlow: true,
+      title: "Participating Companies",
+      subtitle: "Companies joining today's event",
+      fontScaleByVH: true,
+      fontVHFactor: 0.035,
+      latinLetterSpacing: 0.4,
+      cjkLetterSpacing: 0,
+      persistKey: "sponsorWall.v3"
+    };
+
+    // ---------- DATA (sample) ----------
+    let COMPANIES = [
+      "신한투자증권","NAVER","카카오","LG CNS","Samsung SDS","NHN Cloud","Coupang","토스(Toss)","두나무(Upbit)","Bithumb","GSR Markets","위메이드","SK hynix"
+    ];
+
+    // Load saved data
+    try {
+      const saved = JSON.parse(localStorage.getItem(CONFIG.persistKey) || "null");
+      if (saved && Array.isArray(saved.COMPANIES)) COMPANIES = saved.COMPANIES;
+      if (saved && saved.CONFIG) Object.assign(CONFIG, saved.CONFIG);
+    } catch {}
+
+    const rowsEl = document.getElementById('rows');
+    const stageEl = document.getElementById('stage');
+
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+    function idealRowCount(){
+      if (CONFIG.rows !== "auto") return CONFIG.rows;
+      const count = COMPANIES.length;
+      if (window.innerHeight < 600) return clamp(Math.ceil(count/12), 1, 3);
+      if (window.innerHeight < 900) return clamp(Math.ceil(count/14), 2, 4);
+      return clamp(Math.ceil(count/16), 2, 5);
+    }
+
+    function computeFontScale(){
+      if (!CONFIG.fontScaleByVH) return 1;
+      const scale = clamp((window.innerHeight * CONFIG.fontVHFactor) / 28, 0.7, 2.2);
+      document.documentElement.style.setProperty('--font-scale', scale);
+    }
+
+    function setGaps(){
+      document.documentElement.style.setProperty('--gap', CONFIG.gapPx + 'px');
+      document.documentElement.style.setProperty('--row-gap', CONFIG.rowGapPx + 'px');
+      document.documentElement.style.setProperty('--latin-ls', CONFIG.latinLetterSpacing + 'px');
+      document.documentElement.style.setProperty('--cjk-ls', CONFIG.cjkLetterSpacing + 'px');
+    }
+
+    const CJK_REGEX = /[ᄀ-ᇿ㄰-㆏가-힯぀-ヿ一-鿿]/;
+
+    // NEW: stable marquee lanes with explicit sequence width
+    function buildRow(items, idx){
+      const wrap = document.createElement('div');
+      wrap.className = 'row-wrap';
+
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      // Inner lane which moves
+      const lane = document.createElement('div');
+      lane.className = 'lane';
+      // ensure CSS vars exist for duration/speed
+      lane.style.setProperty('--base-duration', '30s');
+
+      function makeSeq(list){
+        const seq = document.createElement('div');
+        seq.className = 'seq';
+        list.forEach((t, i) => {
+          const chip = document.createElement('div');
+          chip.className = (CONFIG.useChips ? 'item' : 'item brandless') + ' ' + (CJK_REGEX.test(t) ? 'cjk' : 'latin');
+          chip.textContent = t;
+          seq.appendChild(chip);
+          if (i !== list.length - 1){
+            const sep = document.createElement('div');
+            sep.className = 'separator';
+            sep.textContent = '•';
+            seq.appendChild(sep);
+          }
+        });
+        return seq;
+      }
+
+      const seq1 = makeSeq(items);
+      const seq2 = makeSeq(items);
+      lane.appendChild(seq1);
+      lane.appendChild(seq2);
+      row.appendChild(lane);
+      wrap.appendChild(row);
+
+      // direction per row
+      const leftToRight = idx % 2 === 1;
+      lane.dataset.dir = leftToRight ? 'rtl' : 'ltr';
+
+      return { wrap, row, lane, seq1 };
+    }
+
+    function measureAndAnimate(lane, seqEl){
+      // compute one-sequence width
+      const w = Math.ceil(seqEl.getBoundingClientRect().width);
+      // Duplicate more sequences until lane covers viewport + one sequence (prevents blank)
+      while (lane.scrollWidth < window.innerWidth + w){
+        lane.appendChild(seqEl.cloneNode(true));
+      }
+      // speed calc independent of devicePixelRatio; use CSS var for multiplier
+      const jitter = 1 + (Math.random() * 2 - 1) * (CONFIG.speedJitterPct/100);
+      const pxPerSec = CONFIG.baseSpeedPxPerSec * jitter;
+      const seconds = clamp(w / pxPerSec, 5, 120);
+      lane.style.setProperty('--distance', w + 'px');
+      lane.style.setProperty('--base-duration', seconds + 's');
+
+      // apply correct animation class
+      lane.classList.remove('anim-left','anim-right');
+      if (lane.dataset.dir === 'ltr') lane.classList.add('anim-left'); else lane.classList.add('anim-right');
+    }
+
+    let currentLanes = [];
+    function render(){
+      rowsEl.innerHTML = '';
+      computeFontScale();
+      setGaps();
+
+      document.querySelector('.title').textContent = CONFIG.title;
+      document.querySelector('.subtitle').textContent = CONFIG.subtitle;
+
+      const n = idealRowCount();
+      const perRow = Math.ceil(COMPANIES.length / n);
+      currentLanes = [];
+
+      for (let i = 0; i < n; i++) {
+        const slice = COMPANIES.slice(i*perRow, (i+1)*perRow);
+        while (slice.length < perRow && COMPANIES[slice.length]) slice.push(COMPANIES[slice.length]);
+        const { wrap, lane, seq1 } = buildRow(slice, i);
+        rowsEl.appendChild(wrap);
+        currentLanes.push({ lane, seq1 });
+      }
+
+      requestAnimationFrame(() => currentLanes.forEach(({lane, seq1}) => measureAndAnimate(lane, seq1)));
+    }
+
+    function pauseAll(pause){ currentLanes.forEach(({lane}) => lane.classList.toggle('paused', pause)); }
+
+    function toggleFullscreen(){
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+
+    // Overlay/editor
+    const overlay = document.getElementById('overlay');
+    const textarea = document.getElementById('textarea');
+    const applyBtn = document.getElementById('applyBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const loadDemo = document.getElementById('loadDemo');
+
+    function openEditor(){ textarea.value = COMPANIES.join('\n'); overlay.classList.add('show'); setTimeout(()=>textarea.focus(), 50); }
+    function closeEditor(){ overlay.classList.remove('show'); }
+
+    applyBtn.addEventListener('click', () => {
+      const lines = textarea.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      if (lines.length) COMPANIES = lines;
+      persist(); closeEditor(); render();
+    });
+    closeBtn.addEventListener('click', closeEditor);
+    loadDemo.addEventListener('click', () => {
+      textarea.value = [
+        '신한투자증권','NAVER','카카오','LG CNS','Samsung SDS','NHN Cloud','Coupang','토스(Toss)','두나무(Upbit)','Bithumb','GSR Markets','위메이드','SK hynix'
+      ].join('\n');
+    });
+
+    // Dev helper: verify that each company name appears within the concatenated text of at least one lane
+    window.verifyCompaniesPresence = function(){
+      const lanes = Array.from(document.querySelectorAll('.lane'));
+      const laneTexts = lanes.map(l => l.textContent || '');
+      const missing = [];
+      COMPANIES.forEach(name => {
+        const found = laneTexts.some(t => t.includes(name));
+        if (!found) missing.push(name);
+      });
+      if (missing.length === 0) {
+        console.log('[verify] All company names are present in lanes.');
+      } else {
+        console.warn('[verify] Missing names:', missing);
+      }
+      return { missing };
+    };
+
+    function persist(){ localStorage.setItem(CONFIG.persistKey, JSON.stringify({ COMPANIES, CONFIG })); }
+
+    // Keyboard Controls
+    let isPaused = false;
+    window.addEventListener('keydown', (e) => {
+      if (overlay.classList.contains('show')) { if (e.key === 'Escape') closeEditor(); return; }
+      switch (e.key) {
+        case 'f': case 'F': toggleFullscreen(); break;
+        case ' ': e.preventDefault(); isPaused = !isPaused; pauseAll(isPaused); break;
+        case '+': case '=': adjustSpeed(1.1); break;
+        case '-': case '_': adjustSpeed(1/1.1); break;
+        case '[': adjustRows(-1); break;
+        case ']': adjustRows(1); break;
+        case 'g': case 'G': document.querySelector('.stage').classList.toggle('glow'); break;
+        case 'b': case 'B': CONFIG.useChips = !CONFIG.useChips; persist(); render(); break;
+        case 'e': case 'E': openEditor(); break;
+      }
+    });
+
+    function adjustSpeed(mult){
+      const root = document.documentElement;
+      const cur = parseFloat(getComputedStyle(root).getPropertyValue('--speed-mult')) || 1;
+      const next = clamp(cur * mult, 0.4, 3);
+      root.style.setProperty('--speed-mult', next);
+      // animation-duration is CSS calc(var(--base-duration)/var(--speed-mult)), so no JS recompute needed
+    }
+
+    function adjustRows(delta){
+      const n = idealRowCount();
+      const target = clamp((CONFIG.rows === 'auto' ? n : CONFIG.rows) + delta, 1, 6);
+      CONFIG.rows = target; persist(); render();
+    }
+
+    // Recompute on resize
+    let resizeTO; window.addEventListener('resize', () => { clearTimeout(resizeTO); resizeTO = setTimeout(render, 150); });
+
+    // Startup
+    render();
+  </script>
+</body>
+</html>
