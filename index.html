@@ -94,7 +94,7 @@
     .animate-right { animation: marquee-right var(--duration) linear infinite; }
     .paused { animation-play-state: paused !important; }
 
-    .glow { --shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
+    .glow { --shadow: 0 0 28px rgba(255, 255, 255, 0.18); }
 
     @media (prefers-reduced-motion: reduce) {
       .animate-left, .animate-right { animation-duration: 1ms !important; }
@@ -128,7 +128,7 @@
   </style>
 </head>
 <body>
-  <div class="stage glow" id="stage">
+  <div class="stage" id="stage">
     <div class="header">
       <div class="title">Participating Companies</div>
       <div class="subtitle">Companies joining today's event</div>
