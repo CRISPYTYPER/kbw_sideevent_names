@@ -69,8 +69,7 @@ Simply open `index.html` in your browser.
 
 ## 🖥️ Demo / 데모
 
-![demo screenshot](./screenshot.png)  
-_(Add a screenshot or GIF showing the scrolling effect / 스크롤 효과를 보여주는 스크린샷이나 GIF를 추가하세요.)_
+![demo screenshot](./screenshot.png)
 
 ---
 
